@@ -1,0 +1,23 @@
+# 1. Перший GET (з http.cat)
+curl -i http://127.0.0.1:3000/418 -o /tmp/cat418.jpg
+
+# 2. Повторний GET (з кешу)
+curl -i http://127.0.0.1:3000/418 -o /tmp/cat418_cached.jpg
+
+# 3. PUT власної картинки (використаємо завантажену картинку як приклад бінарного файлу)
+curl -i -X PUT --data-binary @/tmp/cat418.jpg http://127.0.0.1:3000/202
+
+# 4. GET після PUT
+curl -i http://127.0.0.1:3000/202 -o /tmp/cat202.jpg
+
+# 5. DELETE існуючого файлу в кеші
+curl -i -X DELETE http://127.0.0.1:3000/202
+
+# 6. DELETE неіснуючого файлу
+curl -i -X DELETE http://127.0.0.1:3000/202
+
+# 7. GET неіснуючого коду
+curl -i http://127.0.0.1:3000/999
+
+# 8. Недозволений метод (POST)
+curl -i -X POST http://127.0.0.1:3000/418
