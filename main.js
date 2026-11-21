@@ -21,13 +21,44 @@ if (!options.host || !Number.isInteger(port) || port <= 0 || port > 65535) {
 
 const cacheDir = path.resolve(options.cache);
 
+function resolveCacheFilePath(rawUrl, host, portNum) {
+  const parsedUrl = new URL(rawUrl, `http://${host}:${portNum}`);
+  const match = /^\/([1-5]\d{2})$/.exec(parsedUrl.pathname);
+  if (!match) {
+    return null;
+  }
+
+  const statusCode = match[1];
+  const fileName = `${statusCode}.jpg`;
+  const resolvedPath = path.resolve(cacheDir, fileName);
+  const cachePrefix = cacheDir.endsWith(path.sep) ? cacheDir : `${cacheDir}${path.sep}`;
+
+  if (!resolvedPath.startsWith(cachePrefix)) {
+    return null;
+  }
+
+  return { statusCode, filePath: resolvedPath };
+}
+
 async function startServer() {
   try {
     await fs.mkdir(cacheDir, { recursive: true });
 
     const server = http.createServer(async (req, res) => {
-      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Proxy server ready\n');
+      try {
+        const target = resolveCacheFilePath(req.url || '/', options.host, port);
+        if (!target) {
+          res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Invalid path. Expected /<statusCode>, e.g. /200 or /404\n');
+          return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(`Valid code: ${target.statusCode}\n`);
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(`Internal server error: ${err.message}\n`);
+      }
     });
 
     server.listen(port, options.host, () => {
