@@ -106,6 +106,21 @@ async function handlePut(req, target, res) {
   res.end('Created\n');
 }
 
+async function handleDelete(target, res) {
+  try {
+    await fs.unlink(target.filePath);
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Deleted\n');
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Cached image not found\n');
+      return;
+    }
+    throw err;
+  }
+}
+
 async function startServer() {
   try {
     await fs.mkdir(cacheDir, { recursive: true });
@@ -126,6 +141,11 @@ async function startServer() {
 
         if (req.method === 'PUT') {
           await handlePut(req, target, res);
+          return;
+        }
+
+        if (req.method === 'DELETE') {
+          await handleDelete(target, res);
           return;
         }
 
