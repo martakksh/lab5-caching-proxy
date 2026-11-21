@@ -41,6 +41,15 @@ function resolveCacheFilePath(rawUrl, host, portNum) {
   return { statusCode, filePath: resolvedPath };
 }
 
+function readRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', (err) => reject(err));
+  });
+}
+
 async function handleGet(target, res) {
   try {
     const cachedImage = await fs.readFile(target.filePath);
@@ -84,6 +93,19 @@ async function handleGet(target, res) {
   }
 }
 
+async function handlePut(req, target, res) {
+  const bodyBuffer = await readRequestBody(req);
+  if (bodyBuffer.length === 0) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Request body must not be empty\n');
+    return;
+  }
+
+  await fs.writeFile(target.filePath, bodyBuffer);
+  res.writeHead(201, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Created\n');
+}
+
 async function startServer() {
   try {
     await fs.mkdir(cacheDir, { recursive: true });
@@ -99,6 +121,11 @@ async function startServer() {
 
         if (req.method === 'GET') {
           await handleGet(target, res);
+          return;
+        }
+
+        if (req.method === 'PUT') {
+          await handlePut(req, target, res);
           return;
         }
 
