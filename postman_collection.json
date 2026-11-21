@@ -1,0 +1,204 @@
+{
+  "info": {
+    "name": "Lab5 Caching Proxy",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET /418 (1st - http.cat)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/418"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Content-Type is image/jpeg\", function () {",
+              "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"image/jpeg\");",
+              "});",
+              "pm.test(\"Source header indicates http.cat\", function () {",
+              "  pm.expect(pm.response.headers.get(\"X-Proxy-Source\")).to.eql(\"http.cat\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /418 (2nd - cache)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/418"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Content-Type is image/jpeg\", function () {",
+              "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"image/jpeg\");",
+              "});",
+              "pm.test(\"Source header indicates cache\", function () {",
+              "  pm.expect(pm.response.headers.get(\"X-Proxy-Source\")).to.eql(\"cache\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PUT /202",
+      "request": {
+        "method": "PUT",
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": "test_cat.jpg.webp"
+          }
+        },
+        "url": "{{baseUrl}}/202"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /202 (from cache)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/202"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Content-Type is image/jpeg\", function () {",
+              "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"image/jpeg\");",
+              "});",
+              "pm.test(\"Source header indicates cache\", function () {",
+              "  pm.expect(pm.response.headers.get(\"X-Proxy-Source\")).to.eql(\"cache\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE /202 (1st)",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/202"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE /202 (2nd - not found)",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/202"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 404\", function () {",
+              "  pm.response.to.have.status(404);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /499",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/499"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Content-Type is image/jpeg\", function () {",
+              "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"image/jpeg\");",
+              "});",
+              "pm.test(\"Source header indicates http.cat\", function () {",
+              "  pm.expect(pm.response.headers.get(\"X-Proxy-Source\")).to.eql(\"http.cat\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST /418 (405)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/418"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 405\", function () {",
+              "  pm.response.to.have.status(405);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
