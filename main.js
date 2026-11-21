@@ -2,6 +2,7 @@ const http = require('node:http');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { Command } = require('commander');
+const superagent = require('superagent');
 
 const program = new Command();
 
@@ -40,6 +41,49 @@ function resolveCacheFilePath(rawUrl, host, portNum) {
   return { statusCode, filePath: resolvedPath };
 }
 
+async function handleGet(target, res) {
+  try {
+    const cachedImage = await fs.readFile(target.filePath);
+    res.writeHead(200, {
+      'Content-Type': 'image/jpeg',
+      'X-Proxy-Source': 'cache',
+    });
+    res.end(cachedImage);
+    return;
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      throw err;
+    }
+  }
+
+  try {
+    const response = await superagent
+      .get(`https://http.cat/${target.statusCode}`)
+      .responseType('buffer');
+
+    const imageBuffer = Buffer.isBuffer(response.body)
+      ? response.body
+      : Buffer.from(response.body);
+
+    await fs.writeFile(target.filePath, imageBuffer);
+
+    res.writeHead(200, {
+      'Content-Type': 'image/jpeg',
+      'X-Proxy-Source': 'http.cat',
+    });
+    res.end(imageBuffer);
+  } catch (err) {
+    if (err.status === 404) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(`Image for status ${target.statusCode} not found on http.cat\n`);
+      return;
+    }
+
+    res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(`Failed to fetch image from http.cat: ${err.message}\n`);
+  }
+}
+
 async function startServer() {
   try {
     await fs.mkdir(cacheDir, { recursive: true });
@@ -53,8 +97,16 @@ async function startServer() {
           return;
         }
 
-        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end(`Valid code: ${target.statusCode}\n`);
+        if (req.method === 'GET') {
+          await handleGet(target, res);
+          return;
+        }
+
+        res.writeHead(405, {
+          Allow: 'GET, PUT, DELETE',
+          'Content-Type': 'text/plain; charset=utf-8',
+        });
+        res.end(`Method ${req.method} not allowed\n`);
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end(`Internal server error: ${err.message}\n`);
